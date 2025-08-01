@@ -237,7 +237,6 @@ import {
             setElements(prev => [...prev, newElement]);
             const elementWithOffsets = { ...newElement, offsetX: 0, offsetY: 0 };
             
-            // Special handling for text tool
             if (tool === Tools.text) {
                 setAction("writing");
             } else {
