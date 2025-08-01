@@ -3,9 +3,12 @@
 import {
     MouseEvent,
     useEffect,
+    useState,
     useLayoutEffect,
     useRef,
-    useState,
+    useCallback,
+    useMemo,
+    useReducer
 } from "react";
 
 import rough from "roughjs";
@@ -17,11 +20,13 @@ import {
     Tool,
     Tools,
     ActionsType,
+    ExtendedElementType,
+    SelectedElementType,
 } from "./store/useSketchStore";
 
 import {ActionBar} from "./components/action-bar/action-bar";
 import {Canvas} from "./components/canvas/canvas";
-import {ColorPalette} from "./components/ColorPalette/ColorPalette"
+//import {ColorPalette} from "./components/ColorPalette/ColorPalette"
 
 import {
     adjustElementCoordinates,
@@ -35,6 +40,27 @@ import {
   } from "./utilities";
 
   export default function App(){
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        // Only run on client side
+        const updateDimensions = () => {
+          setDimensions({
+            width: window.innerWidth,
+            height: window.innerHeight
+          });
+        };
+
+        // Set initial dimensions
+        updateDimensions();
+
+        // Add event listener for window resize
+        window.addEventListener('resize', updateDimensions);
+
+        // Cleanup
+        return () => window.removeEventListener('resize', updateDimensions);
+    }, []);
+
     const initialTool:Tool = Tools.selection;
     const { elements,setElements,undo,redo} = useHistory([]);
     const[panOffset,setPanOffset] = useState({x:0,y:0});
@@ -52,7 +78,7 @@ import {
         const context = canvas.getContext("2d");
         const roughCanvas = rough.canvas(canvas);
 
-        const.clearRect(0,0,canvas.width,canvas.height);
+        context?.clearRect(0,0,canvas.width,canvas.height);
 
         const scaledWidth = canvas.width * scale;
         const scaledHeight = canvas.height * scale;
@@ -136,7 +162,7 @@ import {
         switch(type){
             case Tools.line:
             case Tools.rectangle:{
-                elementsCopy[id] = createElements(id, x1, y1, x2, y2, type);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
                 break;
             }
             case Tools.pencil: {
@@ -158,12 +184,11 @@ import {
                 }
                 const textWidth = context.measureText(options.text).width;
                 const textHeight = 24;
-                elementsCopy[id] = createElements(id,x1,y1,x1 + textWidth,y1 + textHeight,type,
-                    {text:options.text});
+                elementsCopy[id] = createElement(id,x1,y1,x1 + textWidth,y1 + textHeight,type);
                 break;
               }
             case Tools.circle: {
-                elementsCopy[id] = createElements(id, x1, y1, x2, y2, type);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
                 break;
               }
             default:
@@ -182,42 +207,70 @@ import {
     const handleMouseDown = (event: MouseEvent<HTMLCanvasElement>) => {
         if(action === "writing") return;
         const {clientX,clientY} = getMouseCoordinates(event);
+        
+        // Handle panning
         if(tool === Tools.pan || event.button === 1 || pressedKeys.has(" ")){
             setAction("panning");
             setStartPanMousePosition({x:clientX,y:clientY});
             document.body.style.cursor = "grabbing";
             return;
         }
-        if(event.button === 1 || pressedKeys.has(" ")){
-            setAction("panning");
-            setStartPanMousePosition({x:clientX,y:clientY});
-            document.body.style.cursor = "grabbing";
+        
+        // Check if we're clicking on an existing element
+        const element = getElementPos(clientX, clientY, elements);
+        
+        if (element) {
+            // If we have a selected element and we're in selection mode
+            setSelectedElement({
+                ...element,
+                offsetX: clientX - element.x1,
+                offsetY: clientY - element.y1
+            });
+            setAction("moving");
             return;
+        }
+        
+        // Handle drawing tools
+        if (tool !== Tools.selection) {
+            const id = elements.length;
+            const newElement = createElement(id, clientX, clientY, clientX, clientY, tool);
+            setElements(prev => [...prev, newElement]);
+            const elementWithOffsets = { ...newElement, offsetX: 0, offsetY: 0 };
+            
+            // Special handling for text tool
+            if (tool === Tools.text) {
+                setAction("writing");
+            } else {
+                setAction("drawing");
+            }
+            
+            setSelectedElement(elementWithOffsets);
+        } else {
+            // If in selection mode and clicked on empty space, clear selection
+            setSelectedElement(null);
         }
         if(tool === Tools.selection){
             const element = getElementPos(clientX,clientY,elements);
-            if(element.type === "pencil" && element.points){
-                const xOffsets = element.points.map((point) => clientX - point.x);
-                const yOffsets = element.points.map((point) => clientY - point.y);
-                selectedElement = {...selectedElement,xOffsets,yOffsets};   
-            }else{
-                const offsetX = clientX - element.x1;
-                const offsetY = clientY - element.y1;
-                selectedElement = {...element,offsetX,offsetY};
+            if(element){
+                let selectedElement:SelectedElementType = {...element};
+                if(element.type === "pencil" && element.points){
+                    const xOffsets = element.points.map((point) => clientX - point.x);
+                    const yOffsets = element.points.map((point) => clientY - point.y);
+                    selectedElement = {...selectedElement,xOffsets,yOffsets};
+                }else{
+                    const offsetX = clientX - element.x1;
+                    const offsetY = clientY - element.y1;
+                    selectedElement = {...selectedElement,offsetX,offsetY};
+                }
+                setSelectedElement(selectedElement);
+                setElements((prevState) => prevState);
+                if(element.position === "inside"){
+                    setAction("moving");
+                }else{
+                    setAction("resizing");
+                }
             }
-            setSelectedElement(selectedElement);
-            setElements((prevState) => prevState);
-            if(element.position === "inside"){
-                setAction("moving");
-            }else{
-                setAction("resizing");
-            }
-        }else{
-            const id = elements.length;
-            const newElement = createElements(id,clientX,clientY,clientX,clientY,tool);
-            setElements((prevState) => [...prevState,newElement]);
-            setSelectedElement(newElement);
-            setAction(tool === "text" ? "writing" : "drawing");
+
         }
     };
 
@@ -233,20 +286,21 @@ import {
             return;
         }
         if(tool === Tools.selection){
-            const element = getElementPos(clientX,clientY,elements);
+            const element = getElementPos(clientX, clientY, elements);
             
-            if(element && element.position){
-                (event.target as HTMLElement).style.cursor = cursorPosition(
-                    element.position
-                );
-            }else{
-                (event.target as HTMLElement).style.cursor = "default";
+            if(element) {
+                if(element.position) {
+                    (event.target as HTMLElement).style.cursor = cursorPosition(element.position);
+                } else {
+                    (event.target as HTMLElement).style.cursor = 'move';
+                }
+            } else {
+                (event.target as HTMLElement).style.cursor = 'default';
             }
         }
-        if(action === "drawing"){
-            const index = elements.length - 1;
-            const{x1,y1} = elements[index];
-            updateElement(index,x1,y1,clientX,clientY,tool);
+        if(action === "drawing" && selectedElement){
+            const { id, x1, y1 } = selectedElement;
+            updateElement(id, x1, y1, clientX, clientY, tool);
         }else if(action === "moving" && selectedElement){
             if(
                 selectedElement.type === "pencil" &&
@@ -285,7 +339,7 @@ import {
             selectedElement &&
             selectedElement.position
         ){
-            const {id , type , position , ...coordinates} = selectedElement as ExtendedElement;
+            const {id , type , position , ...coordinates} = selectedElement as ExtendedElementType;
             if(typeof position === "string"){
                 const {x1,y1,x2,y2} = resizedCoordinates(clientX,clientY,position,coordinates);
                 updateElement(id,x1,y1,x2,y2,type);
@@ -299,8 +353,8 @@ import {
             const index = selectedElement.id;
             const {id,type} = elements[index];
             if(
-                (action === "drawing" || action === "resizing") &&
-                adjustRequired(elements[index].type)
+                (action === "drawing" || action === "resizing") 
+                //&& adjustRequired(type)
             ){
                 const {x1,y1,x2,y2} = adjustElementCoordinates(elements[index])
                 updateElement(id,x1,y1,x2,y2,type);
@@ -330,7 +384,7 @@ import {
 
     const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
         if(selectedElement){
-            const {id,x1,y1,x2,y2,type} = selectedElement;
+            const {id,x1,y1,type} = selectedElement;
             const x2 = selectedElement.x2 || x1;
             const y2 = selectedElement.y2 || y1;
 
@@ -349,7 +403,7 @@ import {
     return (
         <div>
             <ActionBar tool={tool} setTool={setTool}/>
-            <ControlPanel/>
+            {/* <ControlPanel/> */}
 
             {action === "writing" ? (
                 <textarea 
@@ -366,13 +420,18 @@ import {
                 />
             ):null}
             <canvas 
-              id = "canvas"
-              width = {window.innerWidth}
-              height = {window.innerHeight}
-              onMouseDown = {handleMouseDown}
-              onMouseMove = {handleMouseMove}
-              onMouseUp = {handleMouseUp}
-              style={{position:"absolute",zIndex:1}}
+              id="canvas"
+              width={dimensions.width}
+              height={dimensions.height}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ 
+                position: "absolute", 
+                zIndex: 1,
+                width: '100%',
+                height: '100%'
+              }}
             />
             
         </div>
