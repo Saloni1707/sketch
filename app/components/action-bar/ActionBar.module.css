@@ -8,40 +8,45 @@
 
 .actionBar {
   display: flex;
-  align-items: center;
+  flex-direction: row;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #f7f7fa;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background-color: #f5f5f5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
   /* border: 1px solid #e5e7eb; */
   backdrop-filter: blur(6px);
 }
 
 .inputWrapper {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.6rem;
-  border-radius: 8px;
-  border: 1.5px solid transparent;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.25rem;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid transparent;
 }
 
 .inputWrapper:hover {
-  background: #eceefe;
+  background-color: #e0e0e0;
 }
 
-.selected {
-  background: #e0e7ff;
-  border-color: #4f7afe;
-  box-shadow: 0 0 0 2px #cdd8fc;
+.inputWrapper.selected {
+  background-color: #e0e0e0;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 1px #2196f3;
 }
 
 .inputWrapper input[type="radio"] {
-  display: none;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .inputWrapper label {

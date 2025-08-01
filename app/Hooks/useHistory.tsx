@@ -3,9 +3,9 @@
 import {useState} from "react";
 import { ElementType} from "../store/useSketchStore";
 
-export const useHistory = (initialState:ElementType[]) => {
-    const [ index , setIndex ] = useState(0);
-    const [history , setHistory ] = useState([initialState]);
+export const useHistory = (initialState:ElementType[] = []) => {
+    const [index, setIndex] = useState(0);
+    const [history, setHistory] = useState<ElementType[][]>([Array.isArray(initialState) ? initialState : []]);
 
     const setState = (
         action: ElementType[] | ((current: ElementType[]) => ElementType[]),
@@ -28,8 +28,11 @@ export const useHistory = (initialState:ElementType[]) => {
     const redo = () =>
         index < history.length - 1 && setIndex((prevState) => prevState + 1);
 
+    // Ensure we always return an array, even if history[index] is undefined
+    const elements = Array.isArray(history[index]) ? history[index] : [];
+    
     return {
-        elements:history[index],
+        elements,
         setElements: setState,
         undo,
         redo,

@@ -32,7 +32,7 @@ import {
     adjustElementCoordinates,
     adjustRequired,
     createElement,
-    cursorPosition,
+    cursorPosition as getCursorStyle,
     drawElement,
     getElementPos,
     resizedCoordinates,
@@ -68,41 +68,64 @@ import {
     const[action,setAction] = useState<ActionsType>("none");
     const[tool,setTool] = useState<Tool>(initialTool);
     const[selectedElement,setSelectedElement] = useState<ElementType | null>(null);
-    const[scale,setScale] = useState(1);
-    const[scaleOffset,setScaleOffset] = useState({x:0,y:0});
+    const [scale, setScale] = useState(1);
+    const [scaleOffset, setScaleOffset] = useState({ x: 0, y: 0 });
+    const [cursorPosition, setCursorPosition] = useState({x:0,y:0});
+    const [textInputPosition, setTextInputPosition] = useState({ x: 0, y: 0 });
+    const [showTextPreview, setShowTextPreview] = useState(false);
+    const prevScaleRef = useRef(scale);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     const pressedKeys = usePressedKeys();
 
-    useLayoutEffect(() => {
-        const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-        const context = canvas.getContext("2d");
-        const roughCanvas = rough.canvas(canvas);
+    // Update scale offset when scale changes
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const scaledWidth = canvas.width * scale;
+        const scaledHeight = canvas.height * scale;
+        const scaledOffsetX = (scaledWidth - canvas.width) / 2;
+        const scaledOffsetY = (scaledHeight - canvas.height) / 2;
+        
+        // Only update if scale has actually changed
+        if (prevScaleRef.current !== scale) {
+            setScaleOffset({ x: scaledOffsetX, y: scaledOffsetY });
+            prevScaleRef.current = scale;
+        }
+    }, [scale]);
 
-        context?.clearRect(0,0,canvas.width,canvas.height);
+    useLayoutEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        
+        const roughCanvas = rough.canvas(canvas);
+        context.clearRect(0, 0, canvas.width, canvas.height);
 
         const scaledWidth = canvas.width * scale;
         const scaledHeight = canvas.height * scale;
-        const scaledOffsetX = (scaledWidth - canvas.width)/2;
-        const scaledOffsetY = (scaledHeight - canvas.height)/2;
-        setScaleOffset({x:scaledOffsetX, y:scaledOffsetY})
+        const scaledOffsetX = (scaledWidth - canvas.width) / 2;
+        const scaledOffsetY = (scaledHeight - canvas.height) / 2;
 
-        context?.save();
-        context?.translate(
+        context.save();
+        context.translate(
             panOffset.x * scale - scaledOffsetX,
             panOffset.y * scale - scaledOffsetY
         );
-        context?.scale(scale,scale);
+        context.scale(scale, scale);
 
         elements.forEach((element) => {
-            if(
-                action === "writing" && 
-                selectedElement?.id === element.id
-            )
+            if ((action === "writing" || (tool === 'text' && showTextPreview)) && selectedElement?.id === element.id) {
                 return;
-            drawElement(roughCanvas,context!,element);
+            }
+            drawElement(roughCanvas, context, element);
         });
-        context?.restore();
-    },[elements,action,selectedElement,scale,panOffset]);
+        
+        context.restore();
+    }, [elements, action, selectedElement, scale, panOffset, scaleOffset]);
 
     useEffect(() => {
         const undoRedoFunction = (event:KeyboardEvent) => {
@@ -149,14 +172,19 @@ import {
         }
     },[action,selectedElement]);
 
+    type UpdateElementOptions = {
+        text?: string;
+        points?: Array<{x: number; y: number}>;
+    };
+
     const updateElement = (
-        id:number,
-        x1:number,
-        y1:number,
-        x2:number,
-        y2:number,
-        type:Tool,
-        options?:{text:string}
+        id: number,
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+        type: Tool,
+        options?: UpdateElementOptions
     ) => {
         const elementsCopy = [...elements];
         switch(type){
@@ -166,27 +194,56 @@ import {
                 break;
             }
             case Tools.pencil: {
-                const existingPoints = elementsCopy[id].points || [];
-                elementsCopy[id].points = [...existingPoints, { x: x2, y: y2 }];
+                const existingElement = elementsCopy[id];
+                if (options?.points) {
+                    // If points are provided in options, use them
+                    elementsCopy[id] = {
+                        ...existingElement,
+                        points: options.points,
+                        x1: Math.min(...options.points.map(p => p.x)),
+                        y1: Math.min(...options.points.map(p => p.y)),
+                        x2: Math.max(...options.points.map(p => p.x)),
+                        y2: Math.max(...options.points.map(p => p.y))
+                    };
+                } else {
+                    // Otherwise, add a new point to the existing points
+                    const existingPoints = existingElement.points || [];
+                    elementsCopy[id] = {
+                        ...existingElement,
+                        points: [...existingPoints, { x: x2, y: y2 }],
+                        x1: Math.min(existingElement.x1 || x1, x2),
+                        y1: Math.min(existingElement.y1 || y1, y2),
+                        x2: Math.max(existingElement.x2 || x1, x2),
+                        y2: Math.max(existingElement.y2 || y1, y2)
+                    };
+                }
                 break;
-              }
+            }
             case Tools.text: {
                 const canvas = document.getElementById("canvas");
-                if(!(canvas instanceof HTMLCanvasElement)){
+                if (!(canvas instanceof HTMLCanvasElement)) {
                     throw new Error("Canvas element not found");
                 }
                 const context = canvas.getContext("2d");
-                if(!context){
+                if (!context) {
                     throw new Error("Could not get 2d context");
                 }
-                if(!options){
-                    throw new Error("No text options provided for text tool");
-                }
-                const textWidth = context.measureText(options.text).width;
+                
+                const text = options?.text || "";
+                const textWidth = context.measureText(text).width;
                 const textHeight = 24;
-                elementsCopy[id] = createElement(id,x1,y1,x1 + textWidth,y1 + textHeight,type);
+                
+                elementsCopy[id] = createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type);
+                
+                // If we have text options, update the element with the text
+                if (options) {
+                    elementsCopy[id] = {
+                        ...elementsCopy[id],
+                        text: options.text || ""
+                    };
+                }
                 break;
-              }
+            }
             case Tools.circle: {
                 elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
                 break;
@@ -233,17 +290,51 @@ import {
         // Handle drawing tools
         if (tool !== Tools.selection) {
             const id = elements.length;
-            const newElement = createElement(id, clientX, clientY, clientX, clientY, tool);
-            setElements(prev => [...prev, newElement]);
-            const elementWithOffsets = { ...newElement, offsetX: 0, offsetY: 0 };
             
             if (tool === Tools.text) {
+                // For text tool, create a text element at the click position
+                const adjustedX = (clientX - panOffset.x * scale + scaleOffset.x) / scale;
+                const adjustedY = (clientY - panOffset.y * scale + scaleOffset.y) / scale;
+                
+                const newElement = createElement(
+                    id,
+                    adjustedX,
+                    adjustedY,
+                    adjustedX + 100, // Default width
+                    adjustedY + 24,  // Default height for one line of text
+                    tool
+                );
+                
+                // Add the new element to the elements array
+                const newElements = [...elements, newElement];
+                setElements(newElements);
+                
+                // Set the selected element with proper offsets
+                setSelectedElement({
+                    ...newElement,
+                    offsetX: 0,
+                    offsetY: 0
+                });
+                
+                // Set action to writing to show the text input
                 setAction("writing");
+                
+                // Focus the textarea after a small delay to ensure it's rendered
+                setTimeout(() => {
+                    textAreaRef.current?.focus();
+                }, 10);
+                return;
             } else {
+                // For other drawing tools
+                const newElement = createElement(id, clientX, clientY, clientX, clientY, tool);
+                setElements([...elements, newElement]);
+                setSelectedElement({
+                    ...newElement,
+                    offsetX: 0,
+                    offsetY: 0
+                });
                 setAction("drawing");
             }
-            
-            setSelectedElement(elementWithOffsets);
         } else {
             // If in selection mode and clicked on empty space, clear selection
             setSelectedElement(null);
@@ -262,7 +353,7 @@ import {
                     selectedElement = {...selectedElement,offsetX,offsetY};
                 }
                 setSelectedElement(selectedElement);
-                setElements((prevState) => prevState);
+                // No need to update elements when just selecting
                 if(element.position === "inside"){
                     setAction("moving");
                 }else{
@@ -274,22 +365,33 @@ import {
     };
 
     const handleMouseMove = (event:MouseEvent<HTMLCanvasElement>) => {
-        const {clientX , clientY} = getMouseCoordinates(event);
-        if(action === "panning"){
+        const {clientX, clientY} = getMouseCoordinates(event);
+        
+        // Update cursor position for text preview
+        if (tool === 'text' && action !== 'writing') {
+            setCursorPosition({ x: clientX, y: clientY });
+            setShowTextPreview(true);
+        }
+        
+        // Always update cursor position when moving the mouse
+        setCursorPosition({ x: clientX, y: clientY });
+        
+        if (action === "panning") {
             const deltaX = clientX - startPanMousePosition.x;
             const deltaY = clientY - startPanMousePosition.y;
             setPanOffset({
-                x:panOffset.x + deltaX,
-                y:panOffset.y + deltaY,
+                x: panOffset.x + deltaX,
+                y: panOffset.y + deltaY,
             });
+            setStartPanMousePosition({ x: clientX, y: clientY });
             return;
         }
-        if(tool === Tools.selection){
+        
+        if (tool === Tools.selection) {
             const element = getElementPos(clientX, clientY, elements);
-            
-            if(element) {
-                if(element.position) {
-                    (event.target as HTMLElement).style.cursor = cursorPosition(element.position);
+            if (element) {
+                if (element.position) {
+                    (event.target as HTMLElement).style.cursor = getCursorStyle(element.position);
                 } else {
                     (event.target as HTMLElement).style.cursor = 'move';
                 }
@@ -297,9 +399,33 @@ import {
                 (event.target as HTMLElement).style.cursor = 'default';
             }
         }
-        if(action === "drawing" && selectedElement){
-            const { id, x1, y1 } = selectedElement;
-            updateElement(id, x1, y1, clientX, clientY, tool);
+        
+        if (action === "drawing" && selectedElement) {
+            if (tool === Tools.pencil) {
+                // For pencil tool, add the current point to the points array
+                const elementsCopy = [...elements];
+                const elementIndex = elementsCopy.findIndex(el => el.id === selectedElement.id);
+                
+                if (elementIndex !== -1) {
+                    const element = elementsCopy[elementIndex];
+                    if (element.type === Tools.pencil && element.points) {
+                        // Add the new point to the points array
+                        elementsCopy[elementIndex] = {
+                            ...element,
+                            points: [...element.points, { x: clientX, y: clientY }],
+                            x1: Math.min(element.x1 || clientX, clientX),
+                            y1: Math.min(element.y1 || clientY, clientY),
+                            x2: Math.max(element.x2 || clientX, clientX),
+                            y2: Math.max(element.y2 || clientY, clientY)
+                        };
+                        setElements(elementsCopy, true);
+                    }
+                }
+            } else {
+                // For other tools, update the end coordinates
+                const { id, x1, y1 } = selectedElement;
+                updateElement(id, x1, y1, clientX, clientY, tool);
+            }
         }else if(action === "moving" && selectedElement){
             if(
                 selectedElement.type === "pencil" &&
@@ -317,7 +443,7 @@ import {
                   ...elementsCopy[extendedElement.id],
                   points: newPoints,
                 };
-                setElements(elementsCopy);
+                setElements(elementsCopy, true);
             }else {
                 const { id, x1, x2, y1, y2, type, offsetX, offsetY } =
                     selectedElement as ExtendedElementType;
@@ -347,16 +473,47 @@ import {
     };
 
     const handleMouseUp = (event: MouseEvent<HTMLCanvasElement>) => {
-        const {clientX,clientY} = getMouseCoordinates(event);
-        if(selectedElement){
-            const index = selectedElement.id;
-            const {id,type} = elements[index];
-            if(
-                (action === "drawing" || action === "resizing") 
-                //&& adjustRequired(type)
-            ){
-                const {x1,y1,x2,y2} = adjustElementCoordinates(elements[index])
-                updateElement(id,x1,y1,x2,y2,type);
+        const {clientX, clientY} = getMouseCoordinates(event);
+        if (selectedElement) {
+            const index = elements.findIndex(el => el.id === selectedElement.id);
+            if (index === -1) {
+                setAction("none");
+                setSelectedElement(null);
+                return;
+            }
+            
+            const element = elements[index];
+            const {id, type} = element;
+            
+            if (type === Tools.pencil) {
+                if (element.points && element.points.length < 2) {
+                    // If only one point, convert it to a small circle
+                    const point = element.points[0];
+                    updateElement(id, point.x - 2, point.y - 2, point.x + 2, point.y + 2, Tools.circle);
+                } else {
+                    // For pencil tool with multiple points, ensure we have valid bounds
+                    const bounds = element.points?.reduce((acc, point) => ({
+                        minX: Math.min(acc.minX, point.x),
+                        minY: Math.min(acc.minY, point.y),
+                        maxX: Math.max(acc.maxX, point.x),
+                        maxY: Math.max(acc.maxY, point.y)
+                    }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+                    
+                    if (bounds && element.points && element.points.length > 1) {
+                        updateElement(
+                            id,
+                            bounds.minX,
+                            bounds.minY,
+                            bounds.maxX,
+                            bounds.maxY,
+                            type,
+                            { points: element.points }
+                        );
+                    }
+                }
+            } else if (action === "drawing" || action === "resizing") {
+                const {x1, y1, x2, y2} = adjustElementCoordinates(element);
+                updateElement(id, x1, y1, x2, y2, type);
             }
             const offsetX = selectedElement.offsetX || 0;
             const offsetY = selectedElement.offsetY || 0;
@@ -382,16 +539,34 @@ import {
     };
 
     const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
-        if(selectedElement){
-            const {id,x1,y1,type} = selectedElement;
-            const x2 = selectedElement.x2 || x1;
-            const y2 = selectedElement.y2 || y1;
-
-            setAction("none");
-            setSelectedElement(null);
-            updateElement(id,x1,y1,x2,y2,type,{text: event.target.value});
-        }else{
-            console.error("No element selected when handleBlur was called");
+        if (selectedElement && textAreaRef.current) {
+            const { id, x1, y1, type } = selectedElement;
+            const text = event.target.value.trim();
+            
+            // Always update the element with the current text, even if it's empty
+            const context = canvasRef.current?.getContext('2d');
+            if (context) {
+                context.font = '24px sans-serif';
+                const metrics = context.measureText(text || ' ');
+                const textWidth = Math.max(metrics.width, 20); // Minimum width of 20px
+                const textHeight = 32; // Slightly larger to accommodate the text
+                
+                // Update the element with the text and proper dimensions
+                updateElement(
+                    id, 
+                    x1, 
+                    y1, 
+                    x1 + textWidth, 
+                    y1 + textHeight, 
+                    type, 
+                    { text: text || ' ' } // Store text or space if empty
+                );
+                
+                // Only reset the action if we're not in drawing mode
+                if (action !== 'drawing') {
+                    setAction("none");
+                }
+            }
         }
     };
 
@@ -404,21 +579,98 @@ import {
             <ActionBar tool={tool} setTool={setTool}/>
             {/* <ControlPanel/> */}
 
-            {action === "writing" ? (
-                <textarea 
-                ref={textAreaRef}
-                onBlur = {handleBlur}
-                className="textArea"
-                style={{
-                    top: selectedElement
-                    ? (selectedElement.y1 - 2)*scale + 
-                    panOffset.y * scale - scaleOffset.y : 0,
-                    left:selectedElement ? selectedElement.x1*scale + panOffset.x * scale - scaleOffset.x : 0,
-                    fontSize: `${24 * scale}px`,
-                }}
-                />
-            ):null}
+            {(action === "writing" || tool === 'text') && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: `${action === 'writing' && selectedElement 
+                                ? selectedElement.y1 * scale + panOffset.y 
+                                : textInputPosition.y}px`,
+                            left: `${action === 'writing' && selectedElement 
+                                ? selectedElement.x1 * scale + panOffset.x 
+                                : textInputPosition.x}px`,
+                            transform: action === 'writing' ? `scale(${scale})` : 'none',
+                            transformOrigin: 'top left',
+                            opacity: action === 'writing' ? 1 : 0.7,
+                            transition: 'opacity 0.1s ease',
+                        }}
+                    >
+                        {action === 'writing' ? (
+                            <textarea
+                                ref={textAreaRef}
+                                onBlur={handleBlur}
+                                autoFocus
+                                className="textArea"
+                                style={{
+                                    fontSize: '24px',
+                                    padding: '4px',
+                                    margin: 0,
+                                    // border: '1px solid #000',
+                                    background: '#ffffff',
+                                    color: '#000000',
+                                    outline: 'none',
+                                    resize: 'none',
+                                    overflow: 'hidden',
+                                    fontFamily: 'sans-serif',
+                                    lineHeight: 1,
+                                    whiteSpace: 'nowrap',
+                                    pointerEvents: 'auto',
+                                    minWidth: '200px',
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        textAreaRef.current?.blur();
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <div 
+                                onClick={(e) => {
+                                    if (tool === 'text') {
+                                        // Store the current cursor position for the text input
+                                        setTextInputPosition({
+                                            x: cursorPosition.x,
+                                            y: cursorPosition.y
+                                        });
+                                        setAction('writing');
+                                        // Focus the textarea after a small delay to ensure it's rendered
+                                        setTimeout(() => {
+                                            textAreaRef.current?.focus();
+                                        }, 0);
+                                    }
+                                }}
+                                style={{
+                                    fontSize: '24px',
+                                    padding: '4px',
+                                    margin: 0,
+                                    fontFamily: 'sans-serif',
+                                    lineHeight: 1,
+                                    whiteSpace: 'nowrap',
+                                    color: '#00000033',
+                                    cursor: tool === 'text' ? 'pointer' : 'default',
+                                    pointerEvents: tool === 'text' ? 'auto' : 'none',
+                                    minWidth: '200px',
+                                    borderBottom: '2px dashed #00000033',
+                                }}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
             <canvas 
+              ref={canvasRef}
               id="canvas"
               width={dimensions.width}
               height={dimensions.height}
@@ -429,13 +681,11 @@ import {
                 position: "absolute", 
                 zIndex: 1,
                 width: '100%',
-                height: '100%'
+                height: '100%',
+                cursor: tool === Tools.text ? 'text' : tool === Tools.selection ? 'default' : 'crosshair'
               }}
             />
             
         </div>
     )
-
-
-
 }

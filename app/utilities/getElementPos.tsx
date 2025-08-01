@@ -44,6 +44,22 @@ const positionWithinElement = (x:number,y:number,element:ElementType) => {
         }
         case Tools.text:
             return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
+        case Tools.circle: {
+            const centerX = (x1 + x2) / 2;
+            const centerY = (y1 + y2) / 2;
+            const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)) / 2;
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            
+            // Check if point is on the circle (with some tolerance)
+            if (Math.abs(distance - radius) < 5) {
+                return "edge";
+            }
+            // Check if point is inside the circle
+            if (distance <= radius) {
+                return "inside";
+            }
+            return null;
+        }
         default:
             throw new Error(`Type not recognised: ${type}`);
     }

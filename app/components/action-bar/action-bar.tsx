@@ -3,8 +3,8 @@
 
 import { TOOLS, Tool } from "../../store/useSketchStore";
 import { LuPencil } from "react-icons/lu";
-import { FiCircle, FiMinus, FiMousePointer, FiSquare } from "react-icons/fi";
-import { IoHandRightOutline, IoText } from "react-icons/io5";
+import { FiCircle, FiMinus, FiMousePointer, FiSquare, FiType } from "react-icons/fi";
+import { IoHandRightOutline } from "react-icons/io5";
 import styles from "./ActionBar.module.css";
 
 type ActionBarProps = {
@@ -35,7 +35,7 @@ export function ActionBar({ tool, setTool }: ActionBarProps) {
             {t === "rectangle" && <FiSquare />}
             {t === "line" && <FiMinus />}
             {t === "pencil" && <LuPencil />}
-            {t === "text" && <IoText />}
+            {t === "text" && <FiType />}
             {t === "circle" && <FiCircle />}
           </label>
           {/* <span>{index + 1}</span> */}

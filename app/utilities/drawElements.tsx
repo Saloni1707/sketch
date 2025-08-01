@@ -31,11 +31,26 @@ export const drawElement = (
             context.fill(new Path2D(stroke));
             break;
         }
-        case "text":{
-            context.textBaseline = "top";
-            context.font = "24px sans-serif";
-            const text = element.text ?? "";
-            context.fillText(text,element.x1,element.y1);
+        case "text": {
+            if (!element.text) break; // Don't render if no text
+            
+            // Save the current context state
+            context.save();
+            
+            // Set text properties
+            const fontSize = 24;
+            context.font = `${fontSize}px sans-serif`;
+            context.textBaseline = 'top';
+            context.fillStyle = '#000000'; // Black text
+            context.strokeStyle = '#FFFFFF'; // White stroke for contrast
+            context.lineWidth = 2;
+            
+            // Draw the text with stroke for better visibility
+            context.strokeText(element.text, element.x1, element.y1);
+            context.fillText(element.text, element.x1, element.y1);
+            
+            // Restore the context state
+            context.restore();
             break;
         }
         case "circle":{
