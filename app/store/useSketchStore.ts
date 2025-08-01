@@ -1,6 +1,17 @@
 // app/store/useSketchStore.ts
 import { create } from 'zustand';
 
+export type SelectedElementType =ElementType & {
+  xOffsets?:number[];
+  yOffsets?:number[];
+  offsetX?:number;
+  offsetY?:number;
+};
+
+export interface ExtendedElementType extends ElementType{
+  xOffsets?:number[];
+  yOffsets?:number[];
+}
 
 export const Tools = {
   pan: "pan",

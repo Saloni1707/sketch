@@ -1,4 +1,4 @@
-import { nearPoint } from "./near-point/near-point";
+import { nearPoint } from "./nearPoint";
 import { ElementType,PointType,Tools } from "../store/useSketchStore";
 
 export const getElementPos = (
