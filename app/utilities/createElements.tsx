@@ -7,7 +7,8 @@ export const createElement = (
     y1:number,
     x2:number,
     y2:number,
-    type:typeof Tools[keyof typeof Tools]
+    type:typeof Tools[keyof typeof Tools],
+    color: string = '#000000'
 ):ElementType => {
     const generator = rough.generator();
 
@@ -15,8 +16,14 @@ export const createElement = (
         case Tools.line:
 
         case Tools.rectangle:{
+            const options = {
+                stroke: color,
+                strokeWidth: 2,
+            };
             const roughElement =
-                type === Tools.line ? generator.line(x1,y1,x2,y2) : generator.rectangle(x1,y1,x2,y2);
+                type === Tools.line 
+                    ? generator.line(x1, y1, x2, y2, options)
+                    : generator.rectangle(x1, y1, x2 - x1, y2 - y1, options);
             return {
                 id,
                 x1,
@@ -48,8 +55,13 @@ export const createElement = (
         case Tools.circle:{
             const centerX = (x1 + x2) / 2;
             const centerY = (y1 + y2) / 2;
-            const radius = Math.sqrt((x2-x1)**2 + (y2-y1)**2)/2
-            const roughElement = generator.circle(centerX,centerY,radius);
+            const radius = Math.sqrt((x2-x1)**2 + (y2-y1)**2)/2;
+            const options = {
+                stroke: color,
+                strokeWidth: 2,
+                fill: 'transparent',
+            };
+            const roughElement = generator.circle(centerX, centerY, radius * 2, options);
             return {id,x1,y1,x2,y2,type,roughElement}
         };
         default:

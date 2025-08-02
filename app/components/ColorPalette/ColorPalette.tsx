@@ -1,4 +1,8 @@
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import React from "react";
+import { Separator } from "../ui/separator";
+import { Input } from "../ui/input";
 
 interface ColorPaletteProps{
     currentColor: string;
@@ -17,17 +21,59 @@ export default function ColorPalette({currentColor,onChange}:ColorPaletteProps){
     ];
 
     return(
-        <div className="color-palette">
-            {colors.map(color => (
-                <button
-                    key={color}
-                    className={currentColor === color ? "selected":" "}
-                    style={{backgroundColor:color,width:24,height:24,border:'1px solid #ccc',margin:2}}
-                    //onClick={e => onChange(e.target.value)}                
-                />
-            ))
-            }
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex h-8 w-8 items-center justify-center p-0"
+                >
+                    <div 
+                      className="h-6 w-6 rounded-full shadow-md border"
+                      style={{backgroundColor:currentColor}}
+                    />
+                </Button>
+                
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="center">
+                <div className="grid gap-4">
+                    <div className="space-y-2">
+                        <h4 className="font-medium text-sm leading-none">Color</h4>
+                        <div className="grid grid-cols-9 gap-1">
+                            {colors.map((color) => (
+                                <button
+                                    key={color}
+                                    className={`h-6 w-6 rounded-full shadow-md border ${
+                                        color==="#ffffff" ? "border-gray-200" : ""
+                                    }${currentColor.toLowerCase() === color.toLowerCase() ? "ring-2 ring-offset-2 ring-primary" : ""}`}
+                                    style={{backgroundColor:color}}
+                                    onClick={()=>onChange(color)}                                    
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <Separator />
 
-        </div>
-    )
+                    <div className="space-y-2">
+                        <h4 className="font-medium text-sm leading-none">Custom Color</h4>
+                        <div className="flex items-center gap-2">
+                            <Input 
+                             type="text"
+                             value={currentColor}
+                             onChange={(e)=>onChange(e.target.value)}
+                             className="h-8 text-sm"
+                             placeholder="#RRGGBB"
+                            />
+
+                            <Input
+                                type="color"
+                                value={currentColor}
+                                onChange={(e) => onChange(e.target.value)}
+                                className="h-8 w-10 p-1"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
 }

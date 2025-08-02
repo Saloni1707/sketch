@@ -44,6 +44,7 @@ export type ElementType = {
     x2: number;
     y2: number;
     type: Tool;
+    color?: string;
     roughElement?: any;
     offsetX?: number;
     offsetY?: number;

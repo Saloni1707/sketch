@@ -18,6 +18,8 @@ export const drawElement = (
             if(!element.points){
                 throw new Error("Points not found");
             }
+            context.save();
+            context.fillStyle = element.color || '#000000'; // Use element's color or default to black
             const strokePoints = getStroke(element.points);
             const formattedPoints:[number,number][] = strokePoints.map((point) => {
                 if(point.length !== 2){
@@ -29,6 +31,7 @@ export const drawElement = (
             });
             const stroke = getSvgPathFromStroke(formattedPoints);
             context.fill(new Path2D(stroke));
+            context.restore();
             break;
         }
         case "text": {
@@ -41,7 +44,7 @@ export const drawElement = (
             const fontSize = 24;
             context.font = `${fontSize}px sans-serif`;
             context.textBaseline = 'top';
-            context.fillStyle = '#000000'; // Black text
+            context.fillStyle = element.color || '#000000'; // Use element's color or default to black
             context.strokeStyle = '#FFFFFF'; // White stroke for contrast
             context.lineWidth = 2;
             

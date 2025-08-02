@@ -66,7 +66,8 @@ import {
     const[panOffset,setPanOffset] = useState({x:0,y:0});
     const[startPanMousePosition,setStartPanMousePosition] = useState({x:0,y:0});
     const[action,setAction] = useState<ActionsType>("none");
-    const[tool,setTool] = useState<Tool>(initialTool);
+    const [tool, setTool] = useState<Tool>('select');
+    const [currentColor, setCurrentColor] = useState<string>('#000000');
     const[selectedElement,setSelectedElement] = useState<ElementType | null>(null);
     const [scale, setScale] = useState(1);
     const [scaleOffset, setScaleOffset] = useState({ x: 0, y: 0 });
@@ -190,7 +191,7 @@ import {
         switch(type){
             case Tools.line:
             case Tools.rectangle:{
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, currentColor);
                 break;
             }
             case Tools.pencil: {
@@ -245,7 +246,7 @@ import {
                 break;
             }
             case Tools.circle: {
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type);
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, currentColor);
                 break;
               }
             default:
@@ -293,28 +294,23 @@ import {
             
             if (tool === Tools.text) {
                 // For text tool, create a text element at the click position
-                const adjustedX = (clientX - panOffset.x * scale + scaleOffset.x) / scale;
-                const adjustedY = (clientY - panOffset.y * scale + scaleOffset.y) / scale;
-                
+                const adjustedX = clientX;
+                const adjustedY = clientY;
                 const newElement = createElement(
                     id,
                     adjustedX,
                     adjustedY,
-                    adjustedX + 100, // Default width
-                    adjustedY + 24,  // Default height for one line of text
-                    tool
+                    adjustedX + 200, // Default width for text
+                    adjustedY + 50,  // Default height for text
+                    tool,
+                    currentColor
                 );
                 
-                // Add the new element to the elements array
                 const newElements = [...elements, newElement];
                 setElements(newElements);
                 
                 // Set the selected element with proper offsets
-                setSelectedElement({
-                    ...newElement,
-                    offsetX: 0,
-                    offsetY: 0
-                });
+                setSelectedElement(newElement);
                 
                 // Set action to writing to show the text input
                 setAction("writing");
@@ -326,7 +322,7 @@ import {
                 return;
             } else {
                 // For other drawing tools
-                const newElement = createElement(id, clientX, clientY, clientX, clientY, tool);
+                const newElement = createElement(id, clientX, clientY, clientX, clientY, tool, currentColor);
                 setElements([...elements, newElement]);
                 setSelectedElement({
                     ...newElement,
@@ -576,10 +572,12 @@ import {
 
     return (
         <div>
-            <ActionBar tool={tool} setTool={setTool}/>
-            <ColorPalette currentColor={""} onChange={function (color: string): void {
-                throw new Error("Function not implemented.");
-            } }/>
+            <ActionBar 
+              tool={tool} 
+              setTool={setTool}
+              currentColor={currentColor}
+              onColorChange={setCurrentColor}
+            />
             {/* <ControlPanel/> */}
 
             {(action === "writing" || tool === 'text') && (
