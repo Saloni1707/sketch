@@ -26,7 +26,7 @@ import {
 
 import {ActionBar} from "./components/action-bar/action-bar";
 import {Canvas} from "./components/canvas/canvas";
-//import {ColorPalette} from "./components/ColorPalette/ColorPalette"
+import ColorPalette from "./components/ColorPalette/ColorPalette"
 
 import {
     adjustElementCoordinates,
@@ -577,6 +577,9 @@ import {
     return (
         <div>
             <ActionBar tool={tool} setTool={setTool}/>
+            <ColorPalette currentColor={""} onChange={function (color: string): void {
+                throw new Error("Function not implemented.");
+            } }/>
             {/* <ControlPanel/> */}
 
             {(action === "writing" || tool === 'text') && (
