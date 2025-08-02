@@ -66,7 +66,7 @@ import {
     const[panOffset,setPanOffset] = useState({x:0,y:0});
     const[startPanMousePosition,setStartPanMousePosition] = useState({x:0,y:0});
     const[action,setAction] = useState<ActionsType>("none");
-    const [tool, setTool] = useState<Tool>('select');
+    const [tool, setTool] = useState<Tool>(Tools.selection);
     const [currentColor, setCurrentColor] = useState<string>('#000000');
     const[selectedElement,setSelectedElement] = useState<ElementType | null>(null);
     const [scale, setScale] = useState(1);
@@ -274,11 +274,9 @@ import {
             return;
         }
         
-        // Check if we're clicking on an existing element
+        // Only allow selecting/moving/resizing elements if selection tool is active
         const element = getElementPos(clientX, clientY, elements);
-        
-        if (element) {
-            // If we have a selected element and we're in selection mode
+        if (tool === Tools.selection && element) {
             setSelectedElement({
                 ...element,
                 offsetX: clientX - element.x1,
@@ -560,7 +558,7 @@ import {
                 
                 // Only reset the action if we're not in drawing mode
                 if (action !== 'drawing') {
-                    setAction("none");
+                  setAction("none");
                 }
             }
         }
@@ -580,96 +578,44 @@ import {
             />
             {/* <ControlPanel/> */}
 
-            {(action === "writing" || tool === 'text') && (
-                <div
+            {action === "writing" && selectedElement && (
+                <textarea
+                    ref={textAreaRef}
+                    onBlur={handleBlur}
+                    className="textArea"
                     style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        pointerEvents: 'none',
-                        zIndex: 1000,
+                    position: 'absolute',
+                    zIndex: 10,
+                    top:
+                        (selectedElement.y1 - 2) * scale +
+                        panOffset.y * scale -
+                        scaleOffset.y,
+                    left:
+                        selectedElement.x1 * scale +
+                        panOffset.x * scale -
+                        scaleOffset.x,
+                    font: `${24 * scale}px sans-serif`,
+                    padding: '4px',
+                    margin: 0,
+                    background: 'transparent',
+                    color: '#000',
+                    outline: 'none',
+                    resize: 'none',
+                    overflow: 'hidden',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'auto',
+                    minWidth: '200px',
                     }}
-                >
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: `${action === 'writing' && selectedElement 
-                                ? selectedElement.y1 * scale + panOffset.y 
-                                : textInputPosition.y}px`,
-                            left: `${action === 'writing' && selectedElement 
-                                ? selectedElement.x1 * scale + panOffset.x 
-                                : textInputPosition.x}px`,
-                            transform: action === 'writing' ? `scale(${scale})` : 'none',
-                            transformOrigin: 'top left',
-                            opacity: action === 'writing' ? 1 : 0.7,
-                            transition: 'opacity 0.1s ease',
-                        }}
-                    >
-                        {action === 'writing' ? (
-                            <textarea
-                                ref={textAreaRef}
-                                onBlur={handleBlur}
-                                autoFocus
-                                className="textArea"
-                                style={{
-                                    fontSize: '24px',
-                                    padding: '4px',
-                                    margin: 0,
-                                    // border: '1px solid #000',
-                                    background: '#ffffff',
-                                    color: '#000000',
-                                    outline: 'none',
-                                    resize: 'none',
-                                    overflow: 'hidden',
-                                    fontFamily: 'sans-serif',
-                                    lineHeight: 1,
-                                    whiteSpace: 'nowrap',
-                                    pointerEvents: 'auto',
-                                    minWidth: '200px',
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        textAreaRef.current?.blur();
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <div 
-                                onClick={(e) => {
-                                    if (tool === 'text') {
-                                        // Store the current cursor position for the text input
-                                        setTextInputPosition({
-                                            x: cursorPosition.x,
-                                            y: cursorPosition.y
-                                        });
-                                        setAction('writing');
-                                        // Focus the textarea after a small delay to ensure it's rendered
-                                        setTimeout(() => {
-                                            textAreaRef.current?.focus();
-                                        }, 0);
-                                    }
-                                }}
-                                style={{
-                                    fontSize: '24px',
-                                    padding: '4px',
-                                    margin: 0,
-                                    fontFamily: 'sans-serif',
-                                    lineHeight: 1,
-                                    whiteSpace: 'nowrap',
-                                    color: '#00000033',
-                                    cursor: tool === 'text' ? 'pointer' : 'default',
-                                    pointerEvents: tool === 'text' ? 'auto' : 'none',
-                                    minWidth: '200px',
-                                    borderBottom: '2px dashed #00000033',
-                                }}
-                            />
-                        )}
-                    </div>
-                </div>
-            )}
+                    onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        textAreaRef.current?.blur();
+                    }
+                    }}
+                    autoFocus
+                />
+                )}
             <canvas 
               ref={canvasRef}
               id="canvas"
