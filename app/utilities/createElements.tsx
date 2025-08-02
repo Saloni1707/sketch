@@ -32,6 +32,7 @@ export const createElement = (
                 y2,
                 type,
                 roughElement,
+                color,
             }
         }
         case Tools.pencil:{
@@ -45,11 +46,12 @@ export const createElement = (
                 type,
                 points:[{x:x1,y:y1}],
                 roughElement:defaultRoughElement,
+                color,
             }
         }
 
         case Tools.text:{
-            return{id,type,x1,y1,x2,y2,text:""};
+            return{id,type,x1,y1,x2,y2,text:"",color};
 
         }
         case Tools.circle:{
@@ -62,7 +64,7 @@ export const createElement = (
                 fill: 'transparent',
             };
             const roughElement = generator.circle(centerX, centerY, radius * 2, options);
-            return {id,x1,y1,x2,y2,type,roughElement}
+            return {id,x1,y1,x2,y2,type,roughElement,color}
         };
         default:
             throw new Error("Invalid tool type");

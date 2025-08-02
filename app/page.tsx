@@ -191,7 +191,9 @@ import {
         switch(type){
             case Tools.line:
             case Tools.rectangle:{
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, currentColor);
+                // Use the original color if present, otherwise fallback to currentColor
+                const originalColor = elementsCopy[id]?.color || currentColor;
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, originalColor);
                 break;
             }
             case Tools.pencil: {
@@ -246,7 +248,9 @@ import {
                 break;
             }
             case Tools.circle: {
-                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, currentColor);
+                // Use the original color if present, otherwise fallback to currentColor
+                const originalColor = elementsCopy[id]?.color || currentColor;
+                elementsCopy[id] = createElement(id, x1, y1, x2, y2, type, originalColor);
                 break;
               }
             default:
