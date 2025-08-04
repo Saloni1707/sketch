@@ -1,9 +1,8 @@
 // components/action-bar/action-bar.tsx
 "use client";
-
 import { TOOLS, Tool } from "../../store/useSketchStore";
 import { LuPencil } from "react-icons/lu";
-import { FiCircle, FiMinus, FiMousePointer, FiSquare, FiType } from "react-icons/fi";
+import { FiCircle, FiMinus, FiMousePointer, FiSquare, FiType, FiArrowUpRight } from "react-icons/fi";
 import { IoHandRightOutline } from "react-icons/io5";
 import styles from "./ActionBar.module.css";
 import ColorPalette from "../ColorPalette/ColorPalette";
@@ -39,6 +38,7 @@ export function ActionBar({ tool, setTool, currentColor, onColorChange }: Action
                 {t === "selection" && <FiMousePointer />}
                 {t === "rectangle" && <FiSquare />}
                 {t === "line" && <FiMinus />}
+                {t === "arrow" && <FiArrowUpRight />}
                 {t === "pencil" && <LuPencil />}
                 {t === "text" && <FiType />}
                 {t === "circle" && <FiCircle />}

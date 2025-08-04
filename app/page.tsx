@@ -38,6 +38,7 @@ import {
     resizedCoordinates,
     nearPoint,
   } from "./utilities";
+//import { Control } from "./components/control/control";
 
   export default function App(){
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -190,6 +191,7 @@ import {
         const elementsCopy = [...elements];
         switch(type){
             case Tools.line:
+            case Tools.arrow:
             case Tools.rectangle:{
                 // Use the original color if present, otherwise fallback to currentColor
                 const originalColor = elementsCopy[id]?.color || currentColor;
@@ -580,8 +582,6 @@ import {
               currentColor={currentColor}
               onColorChange={setCurrentColor}
             />
-            {/* <ControlPanel/> */}
-
             {action === "writing" && selectedElement && (
                 <textarea
                     ref={textAreaRef}
@@ -631,8 +631,8 @@ import {
               style={{ 
                 position: "absolute", 
                 zIndex: 1,
-                width: '100%',
-                height: '100%',
+                width: '100vw',
+                height: '100vh',
                 cursor: tool === Tools.text ? 'text' : tool === Tools.selection ? 'default' : 'crosshair'
               }}
             />

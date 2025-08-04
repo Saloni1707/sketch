@@ -14,6 +14,25 @@ export const drawElement = (
         case "rectangle":
             roughCanvas.draw(element.roughElement);
             break;
+        case "arrow": {
+            roughCanvas.draw(element.roughElement);
+            // Draw arrowhead
+            if (element.arrowhead1 && element.arrowhead2) {
+                context.save();
+                context.strokeStyle = element.color || '#000000';
+                context.fillStyle = element.color || '#000000';
+                context.lineWidth = 2;
+                context.beginPath();
+                context.moveTo(element.x2, element.y2);
+                context.lineTo(element.arrowhead1.x, element.arrowhead1.y);
+                context.lineTo(element.arrowhead2.x, element.arrowhead2.y);
+                context.lineTo(element.x2, element.y2);
+                context.closePath();
+                context.fill();
+                context.restore();
+            }
+            break;
+        }
         case "pencil": {
             if(!element.points){
                 throw new Error("Points not found");

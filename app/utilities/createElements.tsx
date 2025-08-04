@@ -14,26 +14,37 @@ export const createElement = (
 
     switch(type){
         case Tools.line:
-
+        case Tools.arrow:
         case Tools.rectangle:{
             const options = {
                 stroke: color,
                 strokeWidth: 2,
             };
             const roughElement =
-                type === Tools.line 
+                type === Tools.line || type === Tools.arrow
                     ? generator.line(x1, y1, x2, y2, options)
                     : generator.rectangle(x1, y1, x2 - x1, y2 - y1, options);
-            return {
-                id,
-                x1,
-                y1,
-                x2,
-                y2,
-                type,
-                roughElement,
-                color,
+            // For arrow, calculate arrowhead points
+            if (type === Tools.arrow) {
+                // Arrowhead calculation: always at (x2, y2), never flips
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const angle = Math.atan2(dy, dx);
+                const headlen = 24; // arrowhead length
+                const arrowWidth = Math.PI / 8; 
+                // Arrowhead points always at (x2, y2)
+                const arrowhead1 = {
+                    x: x2 - headlen * Math.cos(angle - arrowWidth),
+                    y: y2 - headlen * Math.sin(angle - arrowWidth)
+                };
+                const arrowhead2 = {
+                    x: x2 - headlen * Math.cos(angle + arrowWidth),
+                    y: y2 - headlen * Math.sin(angle + arrowWidth)
+                };
+                return {id,x1,y1,x2,y2,type,roughElement,color,arrowhead1,arrowhead2};
             }
+            // For line and rectangle, always return here
+            return {id,x1,y1,x2,y2,type,roughElement,color};
         }
         case Tools.pencil:{
             const defaultRoughElement = null;

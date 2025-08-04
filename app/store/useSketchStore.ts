@@ -18,9 +18,10 @@ export const Tools = {
   selection: "selection",
   rectangle: "rectangle",
   line: "line",
+  arrow: "arrow",
   pencil: "pencil",
   text: "text",
-  circle:"circle"
+  circle: "circle"
 };
 
 export type Tool = typeof Tools[keyof typeof Tools];
@@ -51,6 +52,9 @@ export type ElementType = {
     position?: string | null;
     points?: { x: number; y: number }[];
     text?: string;
+    // Arrow specific
+    arrowhead1?: { x: number; y: number };
+    arrowhead2?: { x: number; y: number };
 };
 
 type SketchState = {

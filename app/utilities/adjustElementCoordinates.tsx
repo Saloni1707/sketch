@@ -9,6 +9,9 @@ export const adjustElementCoordinates = (element: ElementType) => {
     const minY = Math.min(y1, y2);
     const maxY = Math.max(y1, y2);
     return { x1: minX, y1: minY, x2: maxX, y2: maxY };
+  } else if (type === "line" || type === "arrow") {
+    // Preserve direction for line and arrow
+    return { x1, y1, x2, y2 };
   } else {
     if (x1 < x2 || (x1 === x2 && y1 < y2)) {
       return { x1, y1, x2, y2 };

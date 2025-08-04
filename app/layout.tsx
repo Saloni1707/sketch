@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Sketch-lemons",
   description: "A simple sketching app to draw shapes and text",
   icons:{
-    icon:"/public/logo1.png"
+    icon:"/logo1.png"
   }
 };
 

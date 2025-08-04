@@ -17,10 +17,11 @@ export const getElementPos = (
 const positionWithinElement = (x:number,y:number,element:ElementType) => {
     const {type ,x1, x2, y1, y2} = element;
     switch(type){
-        case Tools.line:{
-            const on = onLine(x1,y1,x2,y2,x,y);
-            const start = nearPoint(x,y,x1,y1,"start");
-            const end = nearPoint(x,y,x2,y2,"end");
+        case Tools.line:
+        case Tools.arrow: {
+            const on = onLine(x1, y1, x2, y2, x, y);
+            const start = nearPoint(x, y, x1, y1, "start");
+            const end = nearPoint(x, y, x2, y2, "end");
             return start || end || on;
         }
         case Tools.rectangle:{
