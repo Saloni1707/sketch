@@ -1,7 +1,6 @@
 "use client"
-
+import type { MouseEvent } from "react";
 import {
-    MouseEvent,
     useEffect,
     useState,
     useLayoutEffect,
@@ -268,6 +267,7 @@ import {
         (event.clientY - panOffset.y*scale + scaleOffset.y)/scale;
         return {clientX,clientY};
     };
+
     const handleMouseDown = (event: MouseEvent<HTMLCanvasElement>) => {
         if(action === "writing") return;
         const {clientX,clientY} = getMouseCoordinates(event);
@@ -389,27 +389,26 @@ import {
         
         if (tool === Tools.selection) {
             const element = getElementPos(clientX, clientY, elements);
-            if (element) {
-                if (element.position) {
-                    (event.target as HTMLElement).style.cursor = getCursorStyle(element.position);
+            const target = event.target as HTMLElement | null;
+            if (target?.style) {
+                if (element?.position) {
+                    target.style.cursor = getCursorStyle(element.position);
+                } else if (element) {
+                    target.style.cursor = 'move';
                 } else {
-                    (event.target as HTMLElement).style.cursor = 'move';
+                    target.style.cursor = 'default';
                 }
-            } else {
-                (event.target as HTMLElement).style.cursor = 'default';
             }
         }
         
         if (action === "drawing" && selectedElement) {
             if (tool === Tools.pencil) {
-                // For pencil tool, add the current point to the points array
                 const elementsCopy = [...elements];
                 const elementIndex = elementsCopy.findIndex(el => el.id === selectedElement.id);
                 
                 if (elementIndex !== -1) {
                     const element = elementsCopy[elementIndex];
                     if (element.type === Tools.pencil && element.points) {
-                        // Add the new point to the points array
                         elementsCopy[elementIndex] = {
                             ...element,
                             points: [...element.points, { x: clientX, y: clientY }],
@@ -422,7 +421,6 @@ import {
                     }
                 }
             } else {
-                // For other tools, update the end coordinates
                 const { id, x1, y1 } = selectedElement;
                 updateElement(id, x1, y1, clientX, clientY, tool);
             }
@@ -574,6 +572,55 @@ import {
         setScale((prevState) => Math.min(Math.max(prevState + delta,0.1),20));
     };
 
+    const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+        if (event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            button: 0
+        });
+        handleMouseDown(mouseEvent as unknown as MouseEvent<HTMLCanvasElement>);
+    };
+
+    useEffect(()=> {
+        const canvas=canvasRef.current;
+        if(!canvas)    return;
+        const passiveOption = {passive:false};
+        const handleTouchMoveWrapper=(e:TouchEvent) => {
+            handleTouchMove(e as unknown as React.TouchEvent<HTMLCanvasElement>)
+        };
+        canvas.addEventListener('touchmove',handleTouchMoveWrapper,passiveOption);
+        return()=>{
+            canvas.removeEventListener('touchmove',handleTouchMoveWrapper);
+        }
+    },[])
+
+    const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
+        if (event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        requestAnimationFrame(() => {
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                view: window,
+                cancelable: true
+            });
+            handleMouseMove(mouseEvent as unknown as MouseEvent<HTMLCanvasElement>);
+        });
+        return false;
+    };
+
+    const handleTouchEnd = (event: React.TouchEvent<HTMLCanvasElement>) => {
+        if (event.touches.length > 0) return;
+        const touch = event.changedTouches[0];
+        const mouseEvent = new MouseEvent('mouseup', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        handleMouseUp(mouseEvent as unknown as MouseEvent<HTMLCanvasElement>);
+    };
+
     return (
         <div>
             <ActionBar 
@@ -628,12 +675,27 @@ import {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               style={{ 
-                position: "absolute", 
+                position: "fixed",
+                top: 0,
+                left: 0,
                 zIndex: 1,
                 width: '100vw',
                 height: '100vh',
-                cursor: tool === Tools.text ? 'text' : tool === Tools.selection ? 'default' : 'crosshair'
+                cursor: tool === Tools.text ? 'text' : tool === Tools.selection ? 'default' : 'crosshair',
+                touchAction: 'none',
+                msTouchAction: 'none',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                KhtmlUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
+                userSelect: 'none',
+                WebkitTapHighlightColor: 'rgba(0,0,0,0)'
               }}
             />
             
