@@ -1,6 +1,6 @@
 # Sketch
 
-Sketch is a whiteboard-style drawing app inspired by [Excalidraw] Built for collaboration and creativity, it allows users to draw, sketch, and ideate freely on a digital canvas.
+Sketch is a whiteboard-style drawing app inspired by (Excalidraw).Built for collaboration & creativity, allows users to draw, sketch, and ideate freely on a digital canvas.
 
 ## Features
 
