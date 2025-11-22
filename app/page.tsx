@@ -9,11 +9,10 @@ import {
     useMemo,
     useReducer
 } from "react";
-
+import {useSocket} from "./Hooks/useSocket";
 import rough from "roughjs";
 import { useHistory } from "./Hooks/useHistory";
 import { usePressedKeys } from "./Hooks/usePressedKeys";
-
 import {
     ElementType,
     Tool,
@@ -41,7 +40,7 @@ import {
 
   export default function App(){
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
+    const {emitDraw} = useSocket(handleRemoteDraw);
     useEffect(() => {
         // Only run on client side
         const updateDimensions = () => {
@@ -210,7 +209,7 @@ import {
                         y2: Math.max(...options.points.map(p => p.y))
                     };
                 } else {
-                    // Otherwise, add a new point to the existing points
+                    // else add a new point to the existing points
                     const existingPoints = existingElement.points || [];
                     elementsCopy[id] = {
                         ...existingElement,
@@ -469,6 +468,9 @@ import {
             }
         }
     };
+    function handleRemoteDraw(remoteElements:any){
+        setElements(remoteElements,true); //will overwrite current state here
+    }
 
     const handleMouseUp = (event: MouseEvent<HTMLCanvasElement>) => {
         const {clientX, clientY} = getMouseCoordinates(event);
@@ -534,6 +536,7 @@ import {
         };
         setAction("none");
         setSelectedElement(null);
+        emitDraw(elements);
     };
 
     const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
