@@ -1,18 +1,20 @@
 {
-    "name": "sketch-socket-server",
-    "version": "0.1.0",
-    "main": "dist/socketServer.js",
-    "scripts": {
-      "dev": "ts-node-dev --respawn --transpile-only socketServer.ts",
-      "build": "tsc -p .",
-      "start": "node dist/socketServer.js"
-    },
-    "dependencies": {
-      "express": "^5.1.0",
-      "socket.io": "^4.8.1"
-    },
-    "devDependencies": {
-      "ts-node-dev": "^2.0.0",
-      "typescript": "^5.0.0"
-    }
+  "name": "sketch-socket-server",
+  "version": "0.1.0",
+  "main": "dist/socketServer.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only socketServer.ts",
+    "build": "tsc -p .",
+    "start": "node dist/socketServer.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.0.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
   }
+}
