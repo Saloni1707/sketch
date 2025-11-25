@@ -9,7 +9,7 @@ export type DrawAction = {
 type DrawCallback = (data: DrawAction) => void;
 type PresenceCallback = (users: string[]) => void;
 
-const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3001";
+const SOCKET_SERVER_URL = process.env.PORT || "http://localhost:3001";
 
 export function useSocket(
     room: string | null,

@@ -214,7 +214,6 @@ export default function App() {
         context.restore();
     }, [elements, action, selectedElement, scale, panOffset, scaleOffset, tool, showTextPreview]);
 
-    // Undo/Redo keyboard shortcuts
     useEffect(() => {
         const undoRedoFunction = (event: KeyboardEvent) => {
             if ((event.metaKey || event.ctrlKey) && event.key === "z") {
@@ -235,7 +234,6 @@ export default function App() {
         };
     }, [undo, redo]);
 
-    // Pan/Zoom with mouse wheel
     useEffect(() => {
         const panOrZoomFunction = (event: WheelEvent) => {
             if (pressedKeys.has("Meta") || pressedKeys.has("Control")) {
@@ -254,7 +252,6 @@ export default function App() {
         };
     }, [pressedKeys]);
 
-    // Focus textarea when writing
     useEffect(() => {
         const textArea = textAreaRef.current;
         if (action === "writing" && textArea && selectedElement) {
@@ -692,12 +689,11 @@ export default function App() {
 
     return (
         <div>
-            {/* Name Prompt Modal */}
+            
             {showNamePrompt && (
                 <NamePrompt onSubmit={handleNameSubmit} />
             )}
 
-            {/* Connection Status */}
             {room && displayName && (
                 <div style={{
                     position: 'fixed',
@@ -713,13 +709,11 @@ export default function App() {
                     {connected ? ' Connected' : 'Disconnected'}
                 </div>
             )}
-
-            {/* Collaborators */}
+            
             {connected && presence.length > 0 && (
                 <Collaborators users={presence} />
             )}
 
-            {/* Action Bar */}
             <ActionBar
                 tool={tool}
                 setTool={setTool}
@@ -727,7 +721,6 @@ export default function App() {
                 onColorChange={setCurrentColor}
             />
 
-            {/* Text Input */}
             {action === "writing" && selectedElement && (
                 <textarea
                     ref={textAreaRef}
@@ -767,7 +760,6 @@ export default function App() {
                 />
             )}
 
-            {/* Canvas */}
             <canvas
                 ref={canvasRef}
                 id="canvas"

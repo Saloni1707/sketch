@@ -4,9 +4,10 @@ import { Server } from "socket.io";
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: process.env.CORS_ORIGIN || "*",
         methods: ["GET", "POST"],
     },
 });
@@ -110,7 +111,8 @@ io.on("connection", (socket) => {
     });
 });
 
-const PORT = process.env.SERVER_PORT || 3001;
+
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
