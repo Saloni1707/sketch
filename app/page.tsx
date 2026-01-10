@@ -1,5 +1,4 @@
 "use client"
-import { useSearchParams } from "next/navigation";
 import Collaborators from "./components/Collaborator";
 import NamePrompt from "./components/NamePrompt";
 import type { MouseEvent } from "react";
@@ -693,25 +692,9 @@ export default function App() {
             {showNamePrompt && (
                 <NamePrompt onSubmit={handleNameSubmit} />
             )}
-
-            {room && displayName && (
-                <div style={{
-                    position: 'fixed',
-                    top: 10,
-                    right: 10,
-                    zIndex: 100,
-                    background: connected ? '#4CAF50' : '#f44336',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                }}>
-                    {connected ? ' Connected' : 'Disconnected'}
-                </div>
-            )}
             
             {connected && presence.length > 0 && (
-                <Collaborators users={presence} />
+                <Collaborators users={presence} isConnected={connected} />
             )}
 
             <ActionBar

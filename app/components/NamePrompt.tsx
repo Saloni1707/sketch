@@ -1,3 +1,4 @@
+"use client";
 import React,{useState} from "react";
 
 type Props = {
@@ -6,7 +7,7 @@ type Props = {
 };
 
 export default function NamePrompt({onSubmit,initialName}:Props){
-    const [name,setName] = useState(initialName);
+    const [name,setName] = useState(initialName ?? "");
 
     return(
         <div style={{
