@@ -30,11 +30,14 @@ export const useHistory = (initialState:ElementType[] = []) => {
 
     // Ensure we always return an array, even if history[index] is undefined
     const elements = Array.isArray(history[index]) ? history[index] : [];
-    
+    const canUndo = index > 0;
+    const canRedo = index < history.length - 1;
     return {
         elements,
         setElements: setState,
         undo,
         redo,
+        canUndo,
+        canRedo,
     };
 };

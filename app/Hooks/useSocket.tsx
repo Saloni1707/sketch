@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { ElementType } from "../store/useSketchStore";
 
-export type DrawAction = {
-    type: 'add' | 'update' | 'delete'| 'batch';
-    elements?:any;
-    elementId?:number;
-}
+export type DrawAction =
+  | { type: 'add'; elements: ElementType }
+  | { type: 'update'; elements: ElementType }
+  | { type: 'delete'; elementId: number }
+  | { type: 'batch'; elements: ElementType[] };
+
 type DrawCallback = (data: DrawAction) => void;
 type PresenceCallback = (users: string[]) => void;
 
@@ -32,33 +34,28 @@ export function useSocket(
         if (!room || !displayName) return;
 
         const socket = io(SOCKET_SERVER_URL, {
-            transports: ["websocket", "polling"],
-            query:{room,displayName}
+            transports: ["websocket", "polling"]
         });
+
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("Socket connected");
             setConnected(true);
-            socket.emit("join",{room,displayName})
+            socket.emit("join", { room, displayName });
         });
 
-        socket.on("joined",({room:joinedRoom,users})=>{
-            console.log(`Successfully joined room: ${joinedRoom}`);
+        socket.on("joined", ({ users }) => {
             setPresence(users);
         });
-        //get the initial state from the server
-        socket.on("initail_state",(elements)=>{
-            console.log("Initial state received:",elements);
-            if (onDrawRef.current){
-                onDrawRef.current({type:"batch",elements});
+
+        socket.on("initial_state", (elements: ElementType[]) => {
+            if (onDrawRef.current) {
+                onDrawRef.current({ type: "batch", elements });
             }
         });
 
-        //receive the incremental updates here
-        socket.on("draw_action",(action:DrawAction)=>{
-            console.log("Draw action received:",action);
-            if (onDrawRef.current){
+        socket.on("draw_action", (action: DrawAction) => {
+            if (onDrawRef.current) {
                 onDrawRef.current(action);
             }
         });
@@ -69,7 +66,6 @@ export function useSocket(
         });
 
         socket.on("disconnect", () => {
-            console.log("Socket disconnected");
             setConnected(false);
             setPresence([]);
         });
@@ -79,22 +75,8 @@ export function useSocket(
             setConnected(false);
         });
 
-        const handleBeforeUnload = () => {
-            try {
-                socket.disconnect();
-            } catch (error) {
-                console.error("Error disconnecting socket:", error);
-            }
-        };
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
         return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-            try {
-                socket.disconnect();
-            } catch (error) {
-                console.error("Error disconnecting socket:", error);
-            }
+            socket.disconnect();
         };
     }, [room, displayName]);
 
@@ -104,20 +86,18 @@ export function useSocket(
         }
     }
 
-    function requestState(){
-        if(socketRef.current && room){
-            socketRef.current.emit("request_state",{room});
+    function requestState() {
+        if (socketRef.current && room) {
+            socketRef.current.emit("request_state", { room });
         }
     }
 
     function leaveRoom() {
-        if (socketRef.current) {
-            socketRef.current.disconnect();
-            socketRef.current = null;
-        }
+        socketRef.current?.disconnect();
+        socketRef.current = null;
         setPresence([]);
         setConnected(false);
     }
 
-    return { emitDrawAction, connected, presence, leaveRoom,requestState };
+    return { emitDrawAction, connected, presence, leaveRoom, requestState };
 }

@@ -72,7 +72,7 @@ export default function App() {
     }, []);
 
     const lastEmittedElementRef = useRef<ElementType | null>(null);
-    const { elements, setElements, undo, redo } = useHistory([]);
+    const { elements, setElements, undo, redo , canUndo,canRedo } = useHistory([]);
     const handleRemoteDraw = useCallback((action: DrawAction) => {
         switch (action.type) {
             case 'add':
@@ -742,6 +742,23 @@ export default function App() {
                     autoFocus
                 />
             )}
+
+            <div 
+                style = {{
+                    position:"fixed",
+                    top:16,
+                    right:16,
+                    zIndex:20,
+                    display:"flex",
+                    gap:"8px",
+                    background:"white",
+                    padding:"6px 10px",
+                    borderRadius:"8px",
+                    boxShadow:"0 2px 8px"
+                }}
+            >
+
+            </div>
 
             <canvas
                 ref={canvasRef}
