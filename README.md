@@ -8,7 +8,7 @@ Sketch is a whiteboard-style drawing app inspired by (Excalidraw).Built for coll
 - Undo/Redo support
 - Color and brush size selection(working on it )
 - Clean and modular codebase using React
-- (Optional) Real-time multiplayer (coming soon!)
+- Real-time multiplayer using websockets(coming soon!)
 
 
 ## Tech Stack
